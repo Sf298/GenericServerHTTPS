@@ -54,7 +54,9 @@ public class UserManager {
 		this.fileEncryptorKey = fileEncryptorKey;
 		if(!users.fileExists()) {
 			System.out.println("File 'users.prop' not found. Creating...");
-			users.save();
+			users.save(fileEncryptorKey);
+		} else {
+			loadUserData();
 		}
 		if(scanUserFile) {
 			fileLoaderThread = new Thread(new Runnable() {
@@ -110,9 +112,10 @@ public class UserManager {
 	}
 	
 	/**
-	 * Add a new user to the manager.
-	 * @param uname The username.
-	 * @param unsaltedHash The password, unsalted and pre-hashed with SHA-256.
+	 * Add a new user to the manager. If the user exists, changes the previously
+	 * stored password.
+	 * @param uname the username
+	 * @param unsaltedHash the password, unsalted and pre-hashed with SHA-256
 	 */
 	public void addUser(String uname, String unsaltedHash) {
 		users.put(uname, Encryptor.hashSHA256(unsaltedHash,hashSalt));
@@ -170,6 +173,15 @@ public class UserManager {
 	public boolean checkToken(int token) {
 		if(token == -1) return false;
 		return tokens.containsKey(token);
+	}
+	
+	/**
+	 * Gets the username associated with the given token.
+	 * @param token
+	 * @return The username of the associated user.
+	 */
+	public String getUser(int token) {
+		return tokens.getOrDefault(token, null);
 	}
 	
 	/**

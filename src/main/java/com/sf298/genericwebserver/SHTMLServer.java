@@ -38,6 +38,14 @@ public class SHTMLServer {
     private final HTTPServer server;
     private final HTTPServer.VirtualHost vhost;
     
+	/**
+	 * Running "keytool -genkey -keyalg RSA -alias alias -keystore mykey.keystore -storepass 01234 -keypass 56789"
+	 * in cmd creates the file.
+	 * @param port The port to host on.
+	 * @param keystoreFilename "mykey.keystore"
+	 * @param storepass "01234"
+	 * @param keypass "56789"
+	 */
     public SHTMLServer(int port, String keystoreFilename, String storepass, String keypass) {
         this.port = port;
         this.keystoreFilename = keystoreFilename;
@@ -48,6 +56,9 @@ public class SHTMLServer {
         this.vhost = server.getVirtualHost(null);
     }
     
+	/**
+	 * Starts the server.
+	 */
     public void start() {
         try {
             System.out.println("starting...");
@@ -64,8 +75,15 @@ public class SHTMLServer {
             System.out.println("Server initialisation failed. Is port already in use?");
         }
     }
+	
+	/**
+	 * Stops the server. Cannot be restarted once stopped.
+	 */
+	public void stop() {
+		server.stop();
+	}
     
-    private ServerSocketFactory getServerSocketFactory() throws FileNotFoundException, IOException, CertificateException, UnrecoverableKeyException {
+    protected ServerSocketFactory getServerSocketFactory() throws FileNotFoundException, IOException, CertificateException, UnrecoverableKeyException {
         try {
             char[] password = storepass.toCharArray();
             KeyStore ks = KeyStore.getInstance("jks");
@@ -81,9 +99,41 @@ public class SHTMLServer {
         return null;
     }
     
+	/**
+	 * Adds a context and its corresponding context handler to this server.
+	 * Paths are normalised by removing trailing slashes (except the root).
+	 * @param path the context's path (must start with '/')
+	 * @param handler the context handler for the given path
+	 * @param methods the HTTP methods supported by the context handler (default is "GET")
+	 */
     public void addContext(String path, HTTPServer.ContextHandler handler, String... methods) {
         vhost.addContext(path, handler, methods);
     }
+	
+    public void addHTTPContext(String path, String http, String... methods) {
+        vhost.addContext(path, new HTTPServer.ContextHandler() {
+			@Override
+			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
+				resp.getHeaders().add("Content-Type", "text/html");
+				resp.send(200, http);
+				resp.close();
+				return 0;
+			}
+		}, methods);
+    }
+	
+	/**
+	 * Adds a redirect to the server.
+	 * @param fromContext 
+	 * @param toContext
+	 * @param methods the HTTP methods supported by the context handler (default is "GET")
+	 */
+	public void addRedirect(String fromContext, String toContext, String... methods) {
+		addContext(fromContext, (HTTPServer.Request req, HTTPServer.Response resp) -> {
+			resp.redirect(toContext, true);
+			return 0;
+		}, methods);
+	}
     
     public static String getIPAdresses() {
         try {
