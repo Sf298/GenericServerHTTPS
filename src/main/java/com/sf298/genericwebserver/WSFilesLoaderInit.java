@@ -34,22 +34,22 @@ public class WSFilesLoaderInit {
 	 * blacklisted, only logged in users can access resources in the filter.
 	 * @param server the server to which the resources are added
 	 * @param um the UserManager to use when checking the accessibility of files
-	 * @param resourcePath the folder to scan in the resources path
+	 * @param resourcesPath the folder to scan in the resources path
 	 * @param isBlackList if the context filters are a white or black list
 	 * @param contextFilter the contexts to filter
 	 * are logged in.
 	 * @throws java.io.FileNotFoundException
 	 */
 	public static void addToServer(SHTMLServer server, UserManager um,
-			String resourcePath, boolean isBlackList, String... contextFilter) throws FileNotFoundException {
+			String resourcesPath, boolean isBlackList, String... contextFilter) throws FileNotFoundException {
 		if(contextFilter == null) contextFilter = new String[0];
 		HashSet<String> filteredContexts = new HashSet<>(Arrays.asList(contextFilter));
 		
 		File root;
 		try {
-			root = new File(WSFilesLoaderInit.class.getClassLoader().getResource(resourcePath).getFile().replace("%20", " "));
+			root = new File(WSFilesLoaderInit.class.getClassLoader().getResource(resourcesPath).getFile().replace("%20", " "));
 		} catch(NullPointerException ex) {
-			throw new FileNotFoundException("Could not find resources file: "+resourcePath);
+			throw new FileNotFoundException("Could not find resources file: "+resourcesPath);
 		}
 		DeepFileIterator dfi = new DeepFileIterator(root);
 		while(dfi.hasNext()) {

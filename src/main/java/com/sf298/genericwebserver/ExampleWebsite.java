@@ -32,14 +32,15 @@ public class ExampleWebsite {
 		
 		// add login pages and files found in the WebPages resource
 		WSLoginInit.addToServer(server, um, "Test Website", "/home.html");
-		/*WSFilesLoaderInit.addToServer(server, um, "WebPages", false,
+		WSFilesLoaderInit.addToServer(server, um, "WebPages", false,
 				"login.html",
-				"loginPhoto.png");*/
+				"loginPhoto.png");
 		
-		// add custom (dynamic) context handler
+		// add custom server-side context handler
 		server.addContext("/home.html", new HTTPServer.ContextHandler() {
 			@Override
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
+				// ensure token is valid and return error if not
 				if(!WSLoginInit.reqLoginValid(req, resp, um)) {
 					return 0;
 				}
