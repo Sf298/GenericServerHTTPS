@@ -39,12 +39,12 @@ public class SHTMLServer {
     private final HTTPServer.VirtualHost vhost;
     
 	/**
-	 * Running "keytool -genkey -keyalg RSA -alias alias -keystore mykey.keystore -storepass 01234 -keypass 56789"
+	 * Running "keytool -genkey -keyalg RSA -alias alias -keystore mykey.keystore -storepass 012345 -keypass 456789"
 	 * in cmd creates the file.
 	 * @param port The port to host on.
 	 * @param keystoreFilename "mykey.keystore"
-	 * @param storepass "01234"
-	 * @param keypass "56789"
+	 * @param storepass "012345"
+	 * @param keypass "456789"
 	 */
     public SHTMLServer(int port, String keystoreFilename, String storepass, String keypass) {
         this.port = port;
@@ -57,9 +57,20 @@ public class SHTMLServer {
     }
     
 	/**
+	 * Running "keytool -genkey -keyalg RSA -alias alias -keystore mykey.keystore -storepass 012345 -keypass 456789"
+	 * in cmd creates the file. Defaults to https port 443.
+	 * @param keystoreFilename "mykey.keystore"
+	 * @param storepass "012345"
+	 * @param keypass "456789"
+	 */
+    public SHTMLServer(String keystoreFilename, String storepass, String keypass) {
+        this(443, keystoreFilename, storepass, keypass);
+    }
+    
+	/**
 	 * Starts the server.
 	 */
-    public void start() {
+    public void start() throws FileNotFoundException {
         try {
             System.out.println("starting...");
             
@@ -85,11 +96,12 @@ public class SHTMLServer {
     
     protected ServerSocketFactory getServerSocketFactory() throws FileNotFoundException, IOException, CertificateException, UnrecoverableKeyException {
         try {
-            char[] password = storepass.toCharArray();
+            char[] storePassword = storepass.toCharArray();
+            char[] keyPassword = keypass.toCharArray();
             KeyStore ks = KeyStore.getInstance("jks");
-            ks.load(new FileInputStream(keystoreFilename), password);
+            ks.load(new FileInputStream(keystoreFilename), storePassword);
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(ks, password);
+            kmf.init(ks, keyPassword);
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(kmf.getKeyManagers(), null, null);
             return sslContext.getServerSocketFactory();
@@ -129,6 +141,7 @@ public class SHTMLServer {
 	 * @param methods the HTTP methods supported by the context handler (default is "GET")
 	 */
 	public void addRedirect(String fromContext, String toContext, String... methods) {
+		System.out.println("redirect: "+fromContext+" -> "+toContext);
 		addContext(fromContext, (HTTPServer.Request req, HTTPServer.Response resp) -> {
 			resp.redirect(toContext, true);
 			return 0;

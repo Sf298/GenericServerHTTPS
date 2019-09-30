@@ -59,14 +59,17 @@ public class UserManager {
 			loadUserData();
 		}
 		if(scanUserFile) {
+			if(fileLoaderThread!=null) fileLoaderThread.interrupt();
 			fileLoaderThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while(!Thread.interrupted()) {
+				while(!Thread.currentThread().isInterrupted()) {
 					loadUserData();
 					try {
 						Thread.sleep(10*1000);
-					} catch (InterruptedException ex) {}
+					} catch (InterruptedException ex) {
+						return;
+					}
 				}
 			}
 		});
@@ -76,6 +79,10 @@ public class UserManager {
 		Zf6j0V2HKgkk9tLarewYG
 
 		*/
+	}
+	
+	public void stop() {
+		fileLoaderThread.interrupt();
 	}
 	
 	/**
@@ -108,7 +115,10 @@ public class UserManager {
 	 */
 	public boolean checkPasswordHash(String uname, String unsaltedHash) {
 		uname = uname.toLowerCase();
-		return users.hasKey(uname) && users.get(uname).equals(Encryptor.hashSHA256(unsaltedHash,hashSalt));
+		String saltedHash = Encryptor.hashSHA256(unsaltedHash,hashSalt);
+		//System.out.println(users.get(uname));
+		//System.out.println(saltedHash);
+		return users.hasKey(uname) && users.get(uname).equals(saltedHash);
 	}
 	
 	/**
@@ -118,7 +128,7 @@ public class UserManager {
 	 * @param unsaltedHash the password, unsalted and pre-hashed with SHA-256
 	 */
 	public void addUser(String uname, String unsaltedHash) {
-		users.put(uname, Encryptor.hashSHA256(unsaltedHash,hashSalt));
+		users.put(uname.toLowerCase(), Encryptor.hashSHA256(unsaltedHash,hashSalt));
 		resetBatchSaveThread();
 	}
 	

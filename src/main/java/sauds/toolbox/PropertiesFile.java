@@ -48,7 +48,9 @@ public class PropertiesFile {
     
     
     public String get(String key) {
-        return map.get(key).replaceAll("<!thisIsNewLine!>", "\n");
+		String passHash = map.get(key);
+		if(passHash == null) return null;
+        return passHash.replaceAll("<!thisIsNewLine!>", "\n");
     }
     public int getAsInt(String key) {
         return Integer.parseInt(map.get(key));

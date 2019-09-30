@@ -7,13 +7,17 @@ package com.sf298.genericwebserver;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.freeutils.httpserver.HTTPServer;
 import static net.freeutils.httpserver.HTTPServer.serveFile;
 import sauds.toolbox.DeepFileIterator;
@@ -34,20 +38,26 @@ public class WSFilesLoaderInit {
 	 * @param isBlackList if the context filters are a white or black list
 	 * @param contextFilter the contexts to filter
 	 * are logged in.
+	 * @throws java.io.FileNotFoundException
 	 */
 	public static void addToServer(SHTMLServer server, UserManager um,
-			String resourcePath, boolean isBlackList, String... contextFilter) {
+			String resourcePath, boolean isBlackList, String... contextFilter) throws FileNotFoundException {
 		if(contextFilter == null) contextFilter = new String[0];
 		HashSet<String> filteredContexts = new HashSet<>(Arrays.asList(contextFilter));
 		
-		File root = new File(WSFilesLoaderInit.class.getClassLoader().getResource(resourcePath).getFile().replace("%20", " "));
+		File root;
+		try {
+			root = new File(WSFilesLoaderInit.class.getClassLoader().getResource(resourcePath).getFile().replace("%20", " "));
+		} catch(NullPointerException ex) {
+			throw new FileNotFoundException("Could not find resources file: "+resourcePath);
+		}
 		DeepFileIterator dfi = new DeepFileIterator(root);
 		while(dfi.hasNext()) {
 			File file = dfi.next();
 			String context = file.toString().substring(root.toString().length()).replace("\\", "/");
 			
 			server.addContext(context, (HTTPServer.Request req, HTTPServer.Response resp) -> {
-				if(WSLoginInit.checkReqLogin(req, resp, um, isBlackList, filteredContexts)) {
+				if(WSLoginInit.reqLoginValid(req, resp, um, filteredContexts, isBlackList)) {
 					return 0;
 				} else {
 					if (context.endsWith(".html")) {

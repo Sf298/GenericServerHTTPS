@@ -10,6 +10,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.freeutils.httpserver.HTTPServer;
 
 /**
@@ -17,6 +19,52 @@ import net.freeutils.httpserver.HTTPServer;
  * @author saud
  */
 public class WSLoginInit {
+	
+	/**
+	 * A place holder String that gets replaced by the user's token on the client.
+	 */
+	public static String TOKEN_PLH = "0twtcht4mtoken0thv303c";
+	
+	public static String addTokenCode(String page) {
+		String injCode1 = "\n<script src=\"/tokenCode.js\"></script>\n";
+		int[] pos;
+		while(true) {
+			if( (pos = firstRgx(page, "<.*head.*>")) != null ) {
+				page = insStr(page, injCode1, pos[1]);
+				break;
+			} else if( (pos = firstRgx(page, "<.*body.*>")) != null ) {
+				page = insStr(page, injCode1, pos[1]);
+				break;
+			} else {
+				page = "<html>\n<body>\n"+page+"\n</body>\n</html>";
+			}
+		}
+		
+		String injCode2 =	"\n" +
+							"<script type=\"text/javascript\"> \n" +
+							"    fillPageWithToken();\n" +
+							"</script>\n";
+		if( (pos = firstRgx(page, "<.*\\/.*body.*>")) != null ) {
+			page = insStr(page, injCode2, pos[0]);
+		} else {
+			page = insStr(page, injCode2, -1);
+		}
+		return page;
+	}
+	public static int[] firstRgx(String str, String regex) {
+		Pattern p = Pattern.compile(regex);
+		Matcher matcher = p.matcher(str);
+		if(matcher.find()) {
+			return new int[] {matcher.start(), matcher.end()};
+		}
+		return null;
+	}
+	public static String insStr(String str, String insStr, int i) { 
+		if(i == -1) i = str.length();
+        StringBuilder newString = new StringBuilder(str);
+        newString.insert(i, insStr);
+        return newString.toString(); 
+    } 
 	
 	/**
 	 * Gets the user token from the provided request.
@@ -36,15 +84,35 @@ public class WSLoginInit {
 	 * @return true if the user exists, otherwise false
 	 * @throws IOException 
 	 */
-	public static boolean checkReqLogin(HTTPServer.Request req, UserManager um) throws IOException {
+	public static boolean reqLoginValid(HTTPServer.Request req, UserManager um) throws IOException {
 		int token = getToken(req);
 		return token!=-1 && um.checkToken(token);
 	}
 	
 	/**
 	 * Checks if the token belongs to a valid user account. Replies with a 403
-	 * error and returns false if the token is invalid. If blacklisted, only
-	 * logged in users can access resources in the filter.
+	 * error, closes the stream and returns false if the token is invalid.
+	 * @param req the request
+	 * @param resp the response to write to
+	 * @param um the UserManager containing the user database
+	 * @return true if the user exists, otherwise false
+	 * @throws IOException 
+	 */
+	public static boolean reqLoginValid(HTTPServer.Request req, HTTPServer.Response resp, UserManager um) throws IOException {
+		if(um != null && !WSLoginInit.reqLoginValid(req, um)) {
+			resp.sendError(403, "Invalid login");
+			resp.close();
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	/**
+	 * Checks if the token belongs to a valid user account. Replies with a 403
+	 * error, closes the stream and returns false if the token is invalid.
+	 * Includes a filter for batch processing. If blacklisted, only logged in
+	 * users can access resources in the filter.
 	 * @param req the request
 	 * @param resp the response to write to
 	 * @param um the UserManager containing the user database
@@ -53,11 +121,12 @@ public class WSLoginInit {
 	 * @return true if the user exists, otherwise false
 	 * @throws IOException 
 	 */
-	public static boolean checkReqLogin(HTTPServer.Request req, HTTPServer.Response resp,
-			UserManager um, boolean isBlackList, HashSet<String> contextFilter) throws IOException {
+	public static boolean reqLoginValid(HTTPServer.Request req, HTTPServer.Response resp,
+			UserManager um, HashSet<String> contextFilter, boolean isBlackList) throws IOException {
+		if(contextFilter==null) contextFilter = new HashSet<>();
 		if(um != null
 				&& isBlackList==contextFilter.contains(req.getContext().getPath())
-				&& !WSLoginInit.checkReqLogin(req, um)) {
+				&& !WSLoginInit.reqLoginValid(req, um)) {
 			resp.sendError(403, "Invalid login");
 			resp.close();
 			return false;
@@ -177,6 +246,7 @@ public class WSLoginInit {
 				"\n" +
 				"<body style=\"max-width:1600px\">\n" +
 				"    \n" +
+				"    <script src=\"/tokenCode.js\"></script>\n" +
 				"    <script type=\"text/javascript\">\n" +
 				"		function hexString(buffer) {\n" +
 				"			const byteArray = new Uint8Array(buffer);\n" +
@@ -224,6 +294,7 @@ public class WSLoginInit {
 				"						if(token > -1) {\n" +
 				"							if(remember)\n" +
 				"								setCookie(\"websitetoken\", token, 5);\n" +
+				//"							alert(\"going to "+homePageAddress+"?token=\"+token);\n" +
 				"							window.location.replace(\""+homePageAddress+"?token=\"+token);\n" +
 				"						} else {\n" +
 				"							alert(\"Incorrect username or password!\");\n" +
@@ -280,13 +351,23 @@ public class WSLoginInit {
 				"      var expires = \"expires=\"+ d.toUTCString();\n" +
 				"      document.cookie = cname + \"=\" + cvalue + \";\" + expires + \";path=/\";\n" +
 				"}\n" +
+				"function sf298sWalkText(node, oldStr, newStr) {\n" +
+				"  if (node.nodeType == 3)\n" +
+				"	node.data = node.data.replace(oldStr, newStr);\n" +
+				"  else if (node.nodeType == 1) {\n" +
+				"	for(var i=0; i<node.attributes.length; i++)\n" +
+				"	  node.attributes[i].value = node.attributes[i].value.replace(oldStr, newStr);\n" +
+				"  }\n" +
+				"  if(node.nodeType == 1 && node.nodeName != \"SCRIPT\") {\n" +
+				"	for (var i = 0; i < node.childNodes.length; i++) {\n" +
+				"	  sf298sWalkText(node.childNodes[i], oldStr, newStr);\n" +
+				"	}\n" +
+				"  }\n" +
+				"}\n" +
 				"function fillPageWithToken() {\n" +
-				"    var links = document.getElementsByTagName(\"a\");\n" +
 				"    var token = getToken();\n" +
 				"    var re = new RegExp(\"0twtcht4m\"+\"token\"+\"0thv303c\");\n" +
-				"    for(var i=0; i<links.length; i++) {\n" +
-				"        links[i].href = links[i].href.replace(re, token);\n" +
-				"    }\n" +
+				"	sf298sWalkText(document.body, re, token);\n" +
 				"}\n" +
 				"function getToken() {\n" +
 				"	var token = getCookie(\"websitetoken\");\n" +
