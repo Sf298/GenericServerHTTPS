@@ -352,17 +352,18 @@ public class WSLoginInit {
 				"      document.cookie = cname + \"=\" + cvalue + \";\" + expires + \";path=/\";\n" +
 				"}\n" +
 				"function sf298sWalkText(node, oldStr, newStr) {\n" +
-				"  if (node.nodeType == 3)\n" +
-				"	node.data = node.data.replace(oldStr, newStr);\n" +
-				"  else if (node.nodeType == 1) {\n" +
-				"	for(var i=0; i<node.attributes.length; i++)\n" +
-				"	  node.attributes[i].value = node.attributes[i].value.replace(oldStr, newStr);\n" +
-				"  }\n" +
-				"  if(node.nodeType == 1 && node.nodeName != \"SCRIPT\") {\n" +
-				"	for (var i = 0; i < node.childNodes.length; i++) {\n" +
-				"	  sf298sWalkText(node.childNodes[i], oldStr, newStr);\n" +
-				"	}\n" +
-				"  }\n" +
+				"    if (node.nodeType == 3)\n" +
+				"	     node.data = node.data.replace(oldStr, newStr);\n" +
+				"    else if (node.nodeType == 1) {\n" +
+				"        node.innerHTML = node.innerHTML.replace(oldStr, newStr);" +
+				"	     for(var i=0; i<node.attributes.length; i++)\n" +
+				"	         node.attributes[i].value = node.attributes[i].value.replace(oldStr, newStr);\n" +
+				"    }\n" +
+				"    if(node.nodeType == 1 && node.nodeName != \"SCRIPT\") {\n" +
+				"	     for (var i = 0; i < node.childNodes.length; i++) {\n" +
+				"	         sf298sWalkText(node.childNodes[i], oldStr, newStr);\n" +
+				"	     }\n" +
+				"    }\n" +
 				"}\n" +
 				"function fillPageWithToken() {\n" +
 				"    var token = getToken();\n" +
