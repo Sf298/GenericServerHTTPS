@@ -263,7 +263,7 @@ public class WSLoginInit {
 				"						if(token > -1) {\n" +
 				"							if(remember)\n" +
 				"								setCookie(\"websitetoken\", token, 5);\n" +
-				"							console.log(\"going to "+homePageAddress+"?token=\"+token);\n" +
+				//"							console.log(\"going to "+homePageAddress+"?token=\"+token);\n" +
 				"							window.location.assign(\""+homePageAddress+"?token=\"+token);\n" +
 				"						} else {\n" +
 				"							alert(\"Incorrect username or password!\");\n" +
