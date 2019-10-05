@@ -51,7 +51,7 @@ public class WSLoginInit {
 		}
 		return page;
 	}
-	public static int[] firstRgx(String str, String regex) {
+	private static int[] firstRgx(String str, String regex) {
 		Pattern p = Pattern.compile(regex);
 		Matcher matcher = p.matcher(str);
 		if(matcher.find()) {
@@ -59,7 +59,7 @@ public class WSLoginInit {
 		}
 		return null;
 	}
-	public static String insStr(String str, String insStr, int i) { 
+	private static String insStr(String str, String insStr, int i) { 
 		if(i == -1) i = str.length();
         StringBuilder newString = new StringBuilder(str);
         newString.insert(i, insStr);
@@ -78,60 +78,24 @@ public class WSLoginInit {
 	}
 	
 	/**
-	 * Checks if the token belongs to a valid user account.
-	 * @param req the request
-	 * @param um the UserManager containing the user database
-	 * @return true if the user exists, otherwise false
-	 * @throws IOException 
-	 */
-	public static boolean reqLoginValid(HTTPServer.Request req, UserManager um) throws IOException {
-		int token = getToken(req);
-		return token!=-1 && um.checkToken(token);
-	}
-	
-	/**
 	 * Checks if the token belongs to a valid user account. Replies with a 403
-	 * error, closes the stream and returns false if the token is invalid.
+	 * error, closes the stream and returns true if the token is invalid. This
+	 * allows it to be easily used in an if statement;
 	 * @param req the request
 	 * @param resp the response to write to
-	 * @param um the UserManager containing the user database
+	 * @param pac the pages access checker used to determine if a user needs to
+	 * be logged in to access the page.
 	 * @return true if the user exists, otherwise false
 	 * @throws IOException 
 	 */
-	public static boolean reqLoginValid(HTTPServer.Request req, HTTPServer.Response resp, UserManager um) throws IOException {
-		if(um != null && !WSLoginInit.reqLoginValid(req, um)) {
+	public static boolean checkTokenAndReplyError(HTTPServer.Request req,
+			HTTPServer.Response resp, PagesAccessChecker pac) throws IOException {
+		if(!pac.allowed(req.getContext().getPath(), getToken(req))) {
 			resp.sendError(403, "Invalid login");
 			resp.close();
-			return false;
-		} else {
 			return true;
-		}
-	}
-	
-	/**
-	 * Checks if the token belongs to a valid user account. Replies with a 403
-	 * error, closes the stream and returns false if the token is invalid.
-	 * Includes a filter for batch processing. If blacklisted, only logged in
-	 * users can access resources in the filter.
-	 * @param req the request
-	 * @param resp the response to write to
-	 * @param um the UserManager containing the user database
-	 * @param isBlackList if the context filters are a white or black list
-	 * @param contextFilter the contexts to filter
-	 * @return true if the user exists, otherwise false
-	 * @throws IOException 
-	 */
-	public static boolean reqLoginValid(HTTPServer.Request req, HTTPServer.Response resp,
-			UserManager um, HashSet<String> contextFilter, boolean isBlackList) throws IOException {
-		if(contextFilter==null) contextFilter = new HashSet<>();
-		if(um != null
-				&& isBlackList==contextFilter.contains(req.getContext().getPath())
-				&& !WSLoginInit.reqLoginValid(req, um)) {
-			resp.sendError(403, "Invalid login");
-			resp.close();
-			return false;
 		} else {
-			return true;
+			return false;
 		}
 	}
 	
@@ -143,7 +107,7 @@ public class WSLoginInit {
 	 * @param homePageAddress the context to forward traffic to after login is
 	 * validated. must start with a "/"
 	 */
-	public static void addToServer(SHTMLServer server, UserManager um, String websiteTitle, String homePageAddress) {
+	public static void addToServer(SHTMLServer server, String websiteTitle, String homePageAddress, UserManager um) {
 		if(server == null) throw new NullPointerException("server == null");
 		if(um == null) throw new NullPointerException("um == null");
 		if(homePageAddress == null) throw new NullPointerException("homePageAddress == null");
@@ -165,13 +129,13 @@ public class WSLoginInit {
 			}
 		}, "GET");
 	}
-	private static void addServices(SHTMLServer server, UserManager um) {
+	private static void addServices(SHTMLServer server, UserManager umi) {
 		server.addContext("/logout", new HTTPServer.ContextHandler() {
 			@Override
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
 				int token = getToken(req);
 				if(token != -1) {
-					um.logout(token);
+					umi.logout(token);
 				}
 				resp.send(200, "done");
 				resp.close();
@@ -183,7 +147,7 @@ public class WSLoginInit {
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
 				int token = getToken(req);
 				if(token != -1) {
-					um.logoutUser(token);
+					umi.logoutUser(token);
 				}
 				resp.send(200, "done");
 				resp.close();
@@ -193,14 +157,15 @@ public class WSLoginInit {
 		server.addContext("/loginChecker", new HTTPServer.ContextHandler() { // process token and login credentials
 			@Override
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
+				//System.out.println("got req params "+req.getPath()+req.getParams());
 				Map<String, String> params = req.getParams();
 				if (params.containsKey("token")) {
 					int token = Integer.parseInt(params.get("token"));
-					resp.send(200, String.valueOf(um.checkToken(token)));
+					resp.send(200, String.valueOf(umi.checkToken(token)));
 				} else if (params.containsKey("uname") && params.containsKey("pswHash")) {
-					if (um.checkPasswordHash(params.get("uname"), params.get("pswHash"))) {
+					if (umi.tryLogin(params.get("uname"), params.get("pswHash"))) {
 						printMessage("User: " + params.get("uname") + " logged in succesfully");
-						resp.send(200, String.valueOf(um.newToken(params.get("uname"))));
+						resp.send(200, String.valueOf(umi.newToken(params.get("uname"))));
 					} else {
 						resp.send(200, "-1");
 					}
@@ -271,6 +236,7 @@ public class WSLoginInit {
 				"            xhr.onreadystatechange = function (e) {\n" +
 				"                if (xhr.readyState == 4 && xhr.status == 200) {\n" +
 				"                    if(xhr.responseText == \"true\") {\n" +
+				//"					     alert(\"2 going to "+homePageAddress+"?token=\"+token);\n" +
 				"                        window.location.replace(\""+homePageAddress+"?token=\"+token);\n" +
 				"                    } else {\n" +
 				"                        delCookie(\"websitetoken\");\n" +
@@ -286,16 +252,19 @@ public class WSLoginInit {
 				"            \n" +
 				"			digestMessage(pword).then(pwordHash => {\n" +
 				"				var xhr = new XMLHttpRequest();\n" +
+				//"				console.log('sending '+\"/loginChecker?uname=\"+uname+\"&pswHash=\"+hexString(pwordHash));\n" +
+				//"				alert('sending '+\"/loginChecker?uname=\"+uname+\"&pswHash=\"+hexString(pwordHash));\n" +
 				"				xhr.open('GET', \"/loginChecker?uname=\"+uname+\"&pswHash=\"+hexString(pwordHash), true);\n" +
 				"				xhr.send();\n" +
 				"				xhr.onreadystatechange = function (e) {\n" +
+				//"				    alert(xhr.readyState +\", \"+ xhr.status);\n" +
 				"					if (xhr.readyState == 4 && xhr.status == 200) {\n" +
 				"						token = parseInt(xhr.responseText);\n" +
 				"						if(token > -1) {\n" +
 				"							if(remember)\n" +
 				"								setCookie(\"websitetoken\", token, 5);\n" +
-				//"							alert(\"going to "+homePageAddress+"?token=\"+token);\n" +
-				"							window.location.replace(\""+homePageAddress+"?token=\"+token);\n" +
+				"							console.log(\"going to "+homePageAddress+"?token=\"+token);\n" +
+				"							window.location.assign(\""+homePageAddress+"?token=\"+token);\n" +
 				"						} else {\n" +
 				"							alert(\"Incorrect username or password!\");\n" +
 				"						}\n" +
@@ -307,7 +276,8 @@ public class WSLoginInit {
 				"    \n" +
 				"    <div class=\"container\">\n" +
 				"        <div class=\"center\" style=\"border:1px solid gray;\">\n" +
-				"            <form onSubmit=\"JavaScript:handleLoginSubmit()\" style=\"text-align:center; margin: 10px\">\n" +
+				"            <iframe name=\"sinkFrame\" style=\"display:none;\"></iframe>\n" +
+				"            <form onSubmit=\"JavaScript:handleLoginSubmit()\" style=\"text-align:center; margin: 10px\" target=\"sinkFrame\">\n" +
 				"                <label for=\"uname\"><b>Username</b></label>\n" +
 				"                <input type=\"text\" placeholder=\"Enter Username\" name=\"uname\" required>\n" +
 				"                <br>\n" +
@@ -393,7 +363,7 @@ public class WSLoginInit {
 				"    };\n" +
 				"}";
 	}
-
+	
 	/*private static void addDynamicPages(SHTMLServer server, UserManager um, DevicesManager dm) {
 		server.addContext("/home.html", new HTTPServer.ContextHandler() {
 			@Override

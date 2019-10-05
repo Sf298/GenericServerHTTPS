@@ -5,21 +5,13 @@
  */
 package com.sf298.genericwebserver;
 
-import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.freeutils.httpserver.HTTPServer;
-import static net.freeutils.httpserver.HTTPServer.serveFile;
 import sauds.toolbox.DeepFileIterator;
 
 /**
@@ -33,17 +25,12 @@ public class WSFilesLoaderInit {
 	 * resources. Specified context paths may be white or black listed. If
 	 * blacklisted, only logged in users can access resources in the filter.
 	 * @param server the server to which the resources are added
-	 * @param um the UserManager to use when checking the accessibility of files
+	 * @param um the DefaultUserManager to use when checking the accessibility of files
 	 * @param resourcesPath the folder to scan in the resources path
-	 * @param isBlackList if the context filters are a white or black list
-	 * @param contextFilter the contexts to filter
-	 * are logged in.
 	 * @throws java.io.FileNotFoundException
 	 */
-	public static void addToServer(SHTMLServer server, UserManager um,
-			String resourcesPath, boolean isBlackList, String... contextFilter) throws FileNotFoundException {
-		if(contextFilter == null) contextFilter = new String[0];
-		HashSet<String> filteredContexts = new HashSet<>(Arrays.asList(contextFilter));
+	public static void addToServer(SHTMLServer server, DefaultUserManager um,
+			String resourcesPath) throws FileNotFoundException {
 		
 		File root;
 		try {
@@ -57,16 +44,15 @@ public class WSFilesLoaderInit {
 			String context = file.toString().substring(root.toString().length()).replace("\\", "/");
 			
 			server.addContext(context, (HTTPServer.Request req, HTTPServer.Response resp) -> {
-				if(WSLoginInit.reqLoginValid(req, resp, um, filteredContexts, isBlackList)) {
+				if(WSLoginInit.checkTokenAndReplyError(req, resp, um.getPAC()))
 					return 0;
+				
+				if (context.endsWith(".html")) {
+					String page = readWholeFile(file);
+					resp.getHeaders().add("Content-Type", "text/html");
+					resp.send(200, page);
 				} else {
-					if (context.endsWith(".html")) {
-						String page = readWholeFile(file);
-						resp.getHeaders().add("Content-Type", "text/html");
-						resp.send(200, page);
-					} else {
-						HTTPServer.serveFile(file.getCanonicalFile(), req.getContext().getPath(), req, resp);
-					}
+					HTTPServer.serveFile(file.getCanonicalFile(), req.getContext().getPath(), req, resp);
 				}
 				resp.close();
 				return 0;

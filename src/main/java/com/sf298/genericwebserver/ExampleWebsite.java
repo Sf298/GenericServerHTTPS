@@ -17,6 +17,7 @@ import sauds.toolbox.Encryptor;
 public class ExampleWebsite {
 	
 	public static void main(String[] args) throws FileNotFoundException {
+		// load params from args, or use default values
 		String keystoreFilePath = (args.length < 1) ? "mykey.keystore" : args[0];
 		String storepass = (args.length < 2) ? "123456" : args[1];
 		String keypass = (args.length < 3) ? "456789" : args[2];
@@ -27,26 +28,36 @@ public class ExampleWebsite {
 		
 		// create and populate a new usermanager
 		String hashSalt = "suhbgfogv", fileEncryptorKey = "lsjfnrjn";
-		UserManager um = new UserManager(true, hashSalt, fileEncryptorKey);
-		um.addUser("Sf298", Encryptor.hashSHA256("password", ""));
+		DefaultUserManager um = new DefaultUserManager(true, hashSalt, fileEncryptorKey);
+		um.addUser("Sf298", Encryptor.hashSHA256("a", ""));
+		
+		// add a PagesAccessChecker to decide what pages can be access by what user
+		um.setPAC(new PagesAccessChecker() {
+			@Override
+			public boolean allowed(String context, int token) {
+				// access is allowed if
+				return um.checkToken(token)
+						//|| context.endsWith("home2.html")
+						|| context.endsWith("login.html")
+						|| context.endsWith("loginPhoto.png");
+			}
+		});
 		
 		// add login pages and files found in the WebPages resource
-		WSLoginInit.addToServer(server, um, "Test Website", "/home.html");
-		WSFilesLoaderInit.addToServer(server, um, "WebPages", false,
-				"login.html",
-				"loginPhoto.png");
+		WSLoginInit.addToServer(server, "Test Website", "/home.html", um);
+		WSFilesLoaderInit.addToServer(server, um, "WebPages");
 		
 		// add custom server-side context handler
 		server.addContext("/home.html", new HTTPServer.ContextHandler() {
 			@Override
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
 				// ensure token is valid and return error if not
-				if(!WSLoginInit.reqLoginValid(req, resp, um)) {
+				if(WSLoginInit.checkTokenAndReplyError(req, resp, um.getPAC())) {
 					return 0;
 				}
 				
 				int token = WSLoginInit.getToken(req);
-				String uname = um.getUser(token);
+				String uname = um.getUserID(token);
 				
 				// it is recommended to use the token place holder as to not leak valid tokens
 				String page = "Hi "+uname+"! You are loggin in with token \""+WSLoginInit.TOKEN_PLH+"\"\n"
