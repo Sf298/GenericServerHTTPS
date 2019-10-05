@@ -29,7 +29,7 @@ public class WSFilesLoaderInit {
 	 * @param resourcesPath the folder to scan in the resources path
 	 * @throws java.io.FileNotFoundException
 	 */
-	public static void addToServer(SHTMLServer server, DefaultUserManager um,
+	public static void addToServer(SHTMLServer server, UserManager um,
 			String resourcesPath) throws FileNotFoundException {
 		
 		File root;
