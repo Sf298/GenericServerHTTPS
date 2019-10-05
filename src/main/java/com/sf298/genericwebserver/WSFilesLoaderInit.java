@@ -49,6 +49,7 @@ public class WSFilesLoaderInit {
 				
 				if (context.endsWith(".html")) {
 					String page = readWholeFile(file);
+					if(um.getPAC()!=null) page = WSLoginInit.addTokenCode(page);
 					resp.getHeaders().add("Content-Type", "text/html");
 					resp.send(200, page);
 				} else {
