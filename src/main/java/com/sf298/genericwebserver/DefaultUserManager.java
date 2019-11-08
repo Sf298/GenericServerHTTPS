@@ -5,13 +5,13 @@
  */
 package com.sf298.genericwebserver;
 
-import sauds.toolbox.Encryptor;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
-import sauds.toolbox.PropertiesFile;
+import sauds.toolbox.encryption.Encryptor;
+import sauds.toolbox.propsFile.PropertiesFile;
 
 /**
  * Performs all the passwords checking and session ID handling for users.

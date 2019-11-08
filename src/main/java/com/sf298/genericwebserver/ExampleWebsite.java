@@ -8,7 +8,7 @@ package com.sf298.genericwebserver;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import net.freeutils.httpserver.HTTPServer;
-import sauds.toolbox.Encryptor;
+import sauds.toolbox.encryption.Encryptor;
 
 /**
  *
