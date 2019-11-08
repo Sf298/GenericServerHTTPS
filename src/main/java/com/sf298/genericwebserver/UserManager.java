@@ -15,19 +15,19 @@ public interface UserManager <T> {
 	
 	public void removeUser(T userID);
 	
-	public int newToken(T userID);
+	public int newSessionID(T userID);
 	
-	public boolean checkToken(int token);
+	public boolean checkSessionID(int sessionID);
 	
-	public T getUserID(int token);
+	public T getUserID(int sessionID);
 	
 	public boolean tryLogin(T userID, String password);
 	
-	public void logout(int token);
+	public void logout(int sessionID);
 	
-	public void logoutUser(int token);
+	public void logoutUser(int sessionID);
 	
-	public void clearTokens();
+	public void clearSessionIDs();
 	
 	public PagesAccessChecker getPAC();
 	

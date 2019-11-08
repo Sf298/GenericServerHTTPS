@@ -44,12 +44,12 @@ public class WSFilesLoaderInit {
 			String context = file.toString().substring(root.toString().length()).replace("\\", "/");
 			
 			server.addContext(context, (HTTPServer.Request req, HTTPServer.Response resp) -> {
-				if(WSLoginInit.checkTokenAndReplyError(req, resp, um.getPAC()))
+				if(WSLoginInit.checkSessionIDAndReplyError(req, resp, um.getPAC()))
 					return 0;
 				
 				if (context.endsWith(".html")) {
 					String page = readWholeFile(file);
-					if(um.getPAC()!=null) page = WSLoginInit.addTokenCode(page);
+					if(um.getPAC()!=null) page = WSLoginInit.addSessionIDCode(page);
 					resp.getHeaders().add("Content-Type", "text/html");
 					resp.send(200, page);
 				} else {

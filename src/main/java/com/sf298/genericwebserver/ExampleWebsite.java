@@ -34,9 +34,9 @@ public class ExampleWebsite {
 		// add a PagesAccessChecker to decide what pages can be access by what user
 		um.setPAC(new PagesAccessChecker() {
 			@Override
-			public boolean allowed(String context, int token) {
+			public boolean allowed(String context, int sessionID) {
 				// access is allowed if
-				return um.checkToken(token)
+				return um.checkSessionID(sessionID)
 						//|| context.endsWith("home2.html")
 						|| context.endsWith("login.html")
 						|| context.endsWith("loginPhoto.png");
@@ -51,18 +51,18 @@ public class ExampleWebsite {
 		server.addContext("/home.html", new HTTPServer.ContextHandler() {
 			@Override
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
-				// ensure token is valid and return error if not
-				if(WSLoginInit.checkTokenAndReplyError(req, resp, um.getPAC())) {
+				// ensure session ID is valid and return error if not
+				if(WSLoginInit.checkSessionIDAndReplyError(req, resp, um.getPAC())) {
 					return 0;
 				}
 				
-				int token = WSLoginInit.getToken(req);
-				String uname = um.getUserID(token);
+				int sessionID = WSLoginInit.getSessionID(req);
+				String uname = um.getUserID(sessionID);
 				
-				// it is recommended to use the token place holder as to not leak valid tokens
-				String page = "Hi "+uname+"! You are loggin in with token \""+WSLoginInit.TOKEN_PLH+"\"\n"
-						+ "<a href='/home.html?token="+WSLoginInit.TOKEN_PLH+"'>Test link with token</a>";
-				page = WSLoginInit.addTokenCode(page);
+				// it is recommended to use the session ID place holder as to not leak valid session IDs
+				String page = "Hi "+uname+"! You are loggin in with sessionID \""+WSLoginInit.SESSION_ID_PLH+"\"\n"
+						+ "<a href='/home.html?sessionID="+WSLoginInit.SESSION_ID_PLH+"'>Test link with sessionID</a>";
+				page = WSLoginInit.addSessionIDCode(page);
 				
 				resp.getHeaders().add("Content-Type", "text/html");
 				resp.send(200, page);

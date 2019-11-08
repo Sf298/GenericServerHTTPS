@@ -23,7 +23,7 @@ server.start();
 This library includes tools to easily set up a user access system. 
 
 #### Managing user accounts
-The UserManager class maintains the useraccounts and tokens. Passwords are hashed on the client then sent to the server, where they are salted and hashed again for storage. Usernames and their password hashes are stored in a properties folder in the same location as the server file. The users file can be stored in 2 ways:
+The UserManager class maintains the useraccounts and session IDs. Passwords are hashed on the client then sent to the server, where they are salted and hashed again for storage. Usernames and their password hashes are stored in a properties folder in the same location as the server file. The users file can be stored in 2 ways:
  * encrypted - the entire file is encrypted, meaning user information must be updated programatically.
  * unencrypted - user names and password hashes are stored in plain text and therefore may be updated by directly editing the file. Any unhashed passwords are hashed appropriately when the file is read.
 ~~~~
@@ -57,18 +57,18 @@ This project uses [JLHTTP](https://www.freeutils.net/source/jlhttp/) and therefo
 server.addContext("/home.html", new HTTPServer.ContextHandler() {
   @Override
   public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
-    // ensure token is valid and return error if not
+    // ensure session ID is valid and return error if not
     if(!WSLoginInit.reqLoginValid(req, resp, um)) {
       return 0;
     }
 
-    int token = WSLoginInit.getToken(req);
-    String uname = um.getUser(token);
+    int sessionID = WSLoginInit.getSessionID(req);
+    String uname = um.getUser(sessionID);
 
-    // it is recommended to use the token place holder as to not leak valid tokens
-    String page = "Hi "+uname+"! You are loggin in with token \""+WSLoginInit.TOKEN_PLH+"\"\n"
-        + "<a href='/home.html?token="+WSLoginInit.TOKEN_PLH+"'>Test link with token</a>";
-    page = WSLoginInit.addTokenCode(page);
+    // it is recommended to use the session ID place holder as to not leak valid session IDs
+    String page = "Hi "+uname+"! You are loggin in with sessionID \""+WSLoginInit.SESSION_ID_PLH+"\"\n"
+        + "<a href='/home.html?sessionID="+WSLoginInit.SESSION_ID_PLH+"'>Test link with sessionID</a>";
+    page = WSLoginInit.addSessionIDCode(page);
 
     resp.getHeaders().add("Content-Type", "text/html");
     resp.send(200, page);

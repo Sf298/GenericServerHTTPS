@@ -14,12 +14,12 @@ import java.util.Random;
 import sauds.toolbox.PropertiesFile;
 
 /**
- * Performs all the passwords checking and token handling for users.
+ * Performs all the passwords checking and session ID handling for users.
  * @author saud
  */
 public class DefaultUserManager implements UserManager<String> {
     
-	public final HashMap<Integer, String> tokens = new HashMap<>();
+	public final HashMap<Integer, String> sessionIDs = new HashMap<>();
 	private final Random r = new Random();
 	private final int HASH_LEN = Encryptor.hashSHA256("a", "a").length();
 	//private final String encryptionKey = Encryptor.genKey("npauvfnpfjlksmnvnpfd");
@@ -164,86 +164,86 @@ public class DefaultUserManager implements UserManager<String> {
 	
 	
 	/**
-	 * Get a new token for the given username.
+	 * Get a new session ID for the given username.
 	 * @param uname A username that exists in the manager.
-	 * @return returns the new token, or -1 if the user does not exist.
+	 * @return returns the new session ID, or -1 if the user does not exist.
 	 */
 	@Override
-	public int newToken(String uname) {
+	public int newSessionID(String uname) {
 		if(!users.hasKey(uname)) return -1;
 		
 		int t;
 		do {
 			t = r.nextInt(Integer.MAX_VALUE);
 			t = Math.abs(t);
-		} while(tokens.keySet().contains(t));
+		} while(sessionIDs.keySet().contains(t));
 
-		tokens.put(t, uname);
+		sessionIDs.put(t, uname);
 		return t;
 	}
 	
 	/**
-	 * Checks if a token has been issued.
-	 * @param token
+	 * Checks if a session ID has been issued.
+	 * @param sessionID
 	 * @return 
 	 */
 	@Override
-	public boolean checkToken(int token) {
-		if(token == -1) return false;
-		return tokens.containsKey(token);
+	public boolean checkSessionID(int sessionID) {
+		if(sessionID == -1) return false;
+		return sessionIDs.containsKey(sessionID);
 	}
 	
 	/**
-	 * Gets the username associated with the given token.
-	 * @param token
+	 * Gets the username associated with the given session ID.
+	 * @param sessionID
 	 * @return The username of the associated user.
 	 */
 	@Override
-	public String getUserID(int token) {
-		return tokens.getOrDefault(token, null);
+	public String getUserID(int sessionID) {
+		return sessionIDs.getOrDefault(sessionID, null);
 	}
 	
 	/**
-	 * Removes all stored tokens.
+	 * Removes all stored session IDs.
 	 */
 	@Override
-	public void clearTokens() {
-		tokens.clear();
+	public void clearSessionIDs() {
+		sessionIDs.clear();
 	}
 	
 	/**
-	 * Removes the selected token.
-	 * @param token The token to remove.
+	 * Removes the selected session ID.
+	 * @param sessionID The session ID to remove.
 	 */
 	@Override
-	public void logout(int token) {
-		tokens.remove(token);
+	public void logout(int sessionID) {
+		sessionIDs.remove(sessionID);
 	}
 	
 	/**
-	 * Logs out all tokens issued to a given user.
-	 * @param token Any token issued to the user.
+	 * Logs out all session IDs issued to a given user.
+	 * @param sessionID Any session ID issued to the user.
 	 */
 	@Override
-	public void logoutUser(int token) {
-		String uname = tokens.get(token);
+	public void logoutUser(int sessionID) {
+		String uname = sessionIDs.get(sessionID);
 		logoutUser(uname);
     }
 	
 	/**
-	 * Logs out all tokens issued to a given user.
+	 * Logs out all session IDs issued to a given user.
 	 * @param uname The username.
 	 */
 	public void logoutUser(String uname) {
 		HashSet<Integer> toRemove = new HashSet<>();
-		for(Map.Entry<Integer, String> entry : tokens.entrySet()) {
+		for(Map.Entry<Integer, String> entry : sessionIDs.entrySet()) {
 			Integer key = entry.getKey();
 			String value = entry.getValue();
 			if(uname.equals(value))
 			toRemove.add(key);
 		}
 		for(Integer integer : toRemove) {
-			tokens.remove(integer);
+			sessionIDs.remove(integer);
 		}
     }
 

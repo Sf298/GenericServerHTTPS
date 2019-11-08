@@ -13,17 +13,17 @@ public interface PagesAccessChecker {
 	
 	public static PagesAccessChecker ALLOWED = new PagesAccessChecker() {
 		@Override
-		public boolean allowed(String content, int token) {
+		public boolean allowed(String content, int sessionID) {
 			return true;
 		}
 	};
 	public static PagesAccessChecker BLOCKED = new PagesAccessChecker() {
 		@Override
-		public boolean allowed(String content, int token) {
+		public boolean allowed(String content, int sessionID) {
 			return false;
 		}
 	};
 	
-	public boolean allowed(String content, int token);
+	public boolean allowed(String content, int sessionID);
 	
 }
