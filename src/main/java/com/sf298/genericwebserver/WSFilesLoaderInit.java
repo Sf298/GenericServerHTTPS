@@ -43,6 +43,7 @@ public class WSFilesLoaderInit {
 			File file = dfi.next();
 			String context = file.toString().substring(root.toString().length()).replace("\\", "/");
 			
+			printMessage("Added: "+context);
 			server.addContext(context, (HTTPServer.Request req, HTTPServer.Response resp) -> {
 				if(WSLoginInit.checkSessionIDAndReplyError(req, resp, um.getPAC()))
 					return 0;

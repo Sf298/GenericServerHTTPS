@@ -24,6 +24,8 @@ public class WSLoginInit {
 	 * A place holder String that gets replaced by the user's session ID on the client.
 	 */
 	public static String SESSION_ID_PLH = "0twtcht4msessionID0thv303c";
+	public static String SESSION_ID_VAR_NAME = "sessionID";
+	public static String SESSION_ID_URL_PARAM = SESSION_ID_VAR_NAME+"="+SESSION_ID_PLH;
 	
 	public static String addSessionIDCode(String page) {
 		String injCode1 = "\n<script src=\"/sessionCode.js\"></script>\n";
@@ -74,7 +76,7 @@ public class WSLoginInit {
 	 */
 	public static int getSessionID(HTTPServer.Request req) throws IOException {
 		Map<String, String> params = req.getParams();
-		return Integer.parseInt(params.getOrDefault("sessionID", "-1"));
+		return Integer.parseInt(params.getOrDefault(SESSION_ID_VAR_NAME, "-1"));
 	}
 	
 	/**
@@ -159,8 +161,8 @@ public class WSLoginInit {
 			public int serve(HTTPServer.Request req, HTTPServer.Response resp) throws IOException {
 				//System.out.println("got req params "+req.getPath()+req.getParams());
 				Map<String, String> params = req.getParams();
-				if (params.containsKey("sessionID")) {
-					int sessionID = Integer.parseInt(params.get("sessionID"));
+				if (params.containsKey(SESSION_ID_VAR_NAME)) {
+					int sessionID = Integer.parseInt(params.get(SESSION_ID_VAR_NAME));
 					resp.send(200, String.valueOf(umi.checkSessionID(sessionID)));
 				} else if (params.containsKey("uname") && params.containsKey("pswHash")) {
 					if (umi.tryLogin(params.get("uname"), params.get("pswHash"))) {
@@ -231,12 +233,12 @@ public class WSLoginInit {
 				"        var sessionID = getSessionID();\n" +
 				"        if(sessionID != \"\") {\n" +
 				"            var xhr = new XMLHttpRequest();\n" +
-				"            xhr.open('GET', \"/loginChecker?sessionID=\"+sessionID, true);\n" +
+				"            xhr.open('GET', \"/loginChecker?"+SESSION_ID_VAR_NAME+"=\"+sessionID, true);\n" +
 				"            xhr.send();\n" +
 				"            xhr.onreadystatechange = function (e) {\n" +
 				"                if (xhr.readyState == 4 && xhr.status == 200) {\n" +
 				"                    if(xhr.responseText == \"true\") {\n" +
-				"                        window.location.replace(\""+homePageAddress+"?sessionID=\"+sessionID);\n" +
+				"                        window.location.replace(\""+homePageAddress+"?"+SESSION_ID_VAR_NAME+"=\"+sessionID);\n" +
 				"                    } else {\n" +
 				"                        delSessionID();\n" +
 				"                    }\n" +
@@ -262,7 +264,7 @@ public class WSLoginInit {
 				"							} else {\n" +
 				"								setSessionID(sessionID, 0); // session only\n" +
 				"							}\n" +
-				"                            window.location.assign(\""+homePageAddress+"?sessionID=\"+getSessionID());\n" +
+				"                            window.location.assign(\""+homePageAddress+"?"+SESSION_ID_VAR_NAME+"=\"+getSessionID());\n" +
 				"                        } else {\n" +
 				"                            alert(\"Incorrect username or password!\");\n" +
 				"                        }\n" +
@@ -342,14 +344,14 @@ public class WSLoginInit {
 				"}\n" +
 				"function fillPageWithSessionID() {\n" +
 				"    var sessionID = getSessionID();\n" +
-				"    var re = new RegExp(\"0twtcht4m\"+\"sessionID\"+\"0thv303c\");\n" +
+				"    var re = new RegExp(\""+SESSION_ID_PLH+"\");\n" +
 				"    sf298sWalkText(document.body, re, sessionID);\n" +
 				"}\n" +
 				"\n" +
 				"function getSessionID() {\n" +
 				"    var sessionID = getCookie(\"websiteSessionID\");\n" +
 				"    if(sessionID.length > 0) return sessionID;\n" +
-				"    return getUrlParameter(\"sessionID\");\n" +
+				"    return getUrlParameter(\""+SESSION_ID_VAR_NAME+"\");\n" +
 				"}\n" +
 				"function setSessionID(sessionID, expireDays) {\n" +
 				"	if(expireDays == 0)\n" +
@@ -357,7 +359,7 @@ public class WSLoginInit {
 				"	else\n" +
 				"		setCookie(\"websiteSessionID\", sessionID, expireDays);\n" +
 				"}\n" +
-				"function delSessionID(sessionID, expireDays) {\n" +
+				"function delSessionID() {\n" +
 				"    delCookie(\"websiteSessionID\");\n" +
 				"}\n" +
 				"\n" +
@@ -369,11 +371,11 @@ public class WSLoginInit {
 				"};\n" +
 				"function logout() {\n" +
 				"    var xhr = new XMLHttpRequest();\n" +
-				"    xhr.open('PUT', \"/logout?sessionID=\"+getCookie(\"websiteSessionID\"), true);\n" +
+				"    xhr.open('PUT', \"/logout?"+SESSION_ID_VAR_NAME+"=\"+getSessionID(), true);\n" +
 				"    xhr.send();\n" +
 				"    xhr.onreadystatechange = function (e) {\n" +
 				"        if (xhr.readyState == 4 && xhr.status == 200) {\n" +
-				"            delCookie(\"websiteSessionID\");\n" +
+				"            delSessionID();\n" +
 				"            window.location.replace(\"/login.html\");\n" +
 				"        }\n" +
 				"    };\n" +
